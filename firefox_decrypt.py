@@ -244,9 +244,17 @@ class NSSDecoder(object):
         """
         _fields_ = [
             ('type', ct.c_uint),
-            ('data', ct.c_char_p),  # actually: unsigned char *
+            ('data', ct.POINTER(ct.c_char)),  # actually: unsigned char *
             ('len', ct.c_uint),
         ]
+
+        @classmethod
+        def new(cls, data=None):
+            if data is None:
+                return cls(0, None, 0)
+
+            else:
+                return cls(0, ct.cast(data, ct.POINTER(ct.c_char)), len(data))
 
     class PK11SlotInfo(ct.Structure):
         """opaque structure representing a logical PKCS slot
@@ -431,8 +439,8 @@ class NSSDecoder(object):
 
     def decode(self, data64):
         data = b64decode(data64)
-        inp = self.SECItem(0, data, len(data))
-        out = self.SECItem(0, None, 0)
+        inp = self.SECItem.new(data)
+        out = self.SECItem.new()
 
         e = self._PK11SDR_Decrypt(inp, out, None)
         LOG.debug("Decryption of data returned %s", e)
